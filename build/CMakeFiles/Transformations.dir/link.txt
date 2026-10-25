@@ -1,1 +1,1 @@
-/usr/bin/c++ -fPIC -flto=auto -shared  -o Transformations.cpython-312-x86_64-linux-gnu.so CMakeFiles/Transformations.dir/Transformations.cpp.o
+/usr/bin/c++ -fPIC -shared -flto=auto -Wl,--dependency-file=CMakeFiles/Transformations.dir/link.d  -o Transformations.cpython-314-x86_64-linux-gnu.so CMakeFiles/Transformations.dir/Transformations.cpp.o  /usr/lib/libgomp.so /usr/lib/libpthread.a

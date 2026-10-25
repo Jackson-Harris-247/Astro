@@ -1,57 +1,56 @@
-#define EQUATORIAL 0;
-#define GALACTIC 1;
+#define EQUATORIAL 0
+#define GALACTIC 1
+#define GALCTOCENTRIC 2
 
 #include "Conversions.h"
 
+using namespace Eigen;
+using namespace std;
+
+//PSVector Formating:
+//Equatorial (RA, DEC, PLAX, PMRA, PMDEC, RV)
+//Right Ascension, Declination, Parallax, Proper Motion Right Ascension, Proper Motion Declination, Radial Velocity
+//Galactic (l, b, d, Vlos, PMl*, PMb)
+//Longitude, Latitude, Distance from Sun, Velocity in Line of Sight, Proper Motion Longitude, Proper Motion Latitude
+//Galactocentric (X, Y, Z, Vx, Vy, Vz)
+//X, Y, Z, Velocity X, Velocity Y, Velocity Z
+
 class Coordinate {
 	public:
-	bool MODE = EQUATORIAL;
-	double RA, DEC;
-	double l, b;
+	int MODE = EQUATORIAL;
+	VectorXd PSVector;
+	Vector2d propogatedError;
 
-	Coordinate() {
-		RA = 0.0;
-		DEC = 0.0;
-		l = 0.0;
-		b = 0.0;
+	double pmra_error, pmdec_error, pmra_pmdec_corr;
+
+	double cosPsi, sinPsi;
+
+	Coordinate() = default;
+
+	Coordinate(int nMODE, VectorXd nPSVector) {
+		MODE = nMODE;
+		PSVector = nPSVector;
 	}
 
-	Coordinate(bool setMODE, double n1, double n2) {
-		if(setMODE) {
-			l = n1;
-			b = n2;
-		} else {
-			RA = n1;
-			DEC = n2;
-		}
+	Coordinate(double ra, double dec, double plax, double pmra, double pmdec, double rv, double Npmra_error, double Npmdec_error, double Npmra_pmdec_corr) : PSVector(6) {
+		PSVector << ra,dec,plax,pmra,pmdec,rv;
+
+		pmra_error = Npmra_error;
+		pmdec_error = Npmdec_error;
+		pmra_pmdec_corr = Npmra_pmdec_corr;
+
+		MODE = EQUATORIAL;
+		//cout << PSVector;
 	}
 
-	//Conversion equations from equatorial to galactic
-	void eqTOgc() {
-		b = asinDEG( sinDEG(DNGP)*sinDEG(DEC) + cosDEG(DNGP) * cosDEG(DEC) * cosDEG(RA - ANGP));
-
-		double y = cosDEG(DEC) * sinDEG(RA - ANGP);
-		double x = sinDEG(DEC) * cosDEG(DNGP) - cosDEG(DEC) * sinDEG(DNGP) * cosDEG(RA - ANGP);
-
-		l = LNCP + atan2DEG(y,x);
+	VectorXd getPSVector(void) {
+		return PSVector;
 	}
 
-	//Conversion equations from galactic to equatorial
-	void gcTOeq() {
-		DEC = asinDEG(sinDEG(b)*sinDEG(DNGP) + cosDEG(DNGP)*sinDEG(l-LNCP));
-
-		double y = cosDEG(b) * cosDEG(l-LNCP);
-		double x = sinDEG(b) * cosDEG(DNGP) - cosDEG(b) * sinDEG(DNGP) * sinDEG(l-LNCP);
-
-		RA = ANGP + atan2DEG(y,x);
+	Vector2d calcError() {
+		double RA = PSVector[0];
+		double DEC = PSVector[1];
+		double b = asinDEG(sinDEG(DEC)*sinDEG(DNGP)+cosDEG(DEC)*cosDEG(DNGP)*cosDEG(RA-ANGP));
+		return propogateErrors( calcCosPsi(RA, DEC, b), calcSinPsi(RA, b), pmra_error,pmdec_error,pmra_pmdec_corr);
 	}
-
-	double getEQ_RA() {
-		return RA;
-	}
-
-	double getEQ_DEC() {
-		return DEC;
-	}
-
 };
